@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS resume_uploads (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  original_filename VARCHAR(255) NOT NULL,
+  stored_filename VARCHAR(255) NOT NULL,
+  file_path VARCHAR(1024) NOT NULL,
+  raw_text LONGTEXT NOT NULL,
+  cleaned_text LONGTEXT NOT NULL,
+  skills_json JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS jd_analyses (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  original_filename VARCHAR(255) NOT NULL,
+  stored_filename VARCHAR(255) NOT NULL,
+  file_path VARCHAR(1024) NOT NULL,
+  candidate_name VARCHAR(255) NOT NULL,
+  job_id VARCHAR(120) NOT NULL,
+  role VARCHAR(255) NOT NULL,
+  salary VARCHAR(255) NULL,
+  year_of_experience DECIMAL(5,2) NULL,
+  about_role LONGTEXT NULL,
+  raw_text LONGTEXT NOT NULL,
+  cleaned_text LONGTEXT NOT NULL,
+  resume_skills_json JSON NOT NULL,
+  required_skills_json JSON NOT NULL,
+  optional_skills_json JSON NOT NULL,
+  all_skills_json JSON NOT NULL,
+  skills_analysis_json JSON NOT NULL,
+  matching_score DECIMAL(5,2) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

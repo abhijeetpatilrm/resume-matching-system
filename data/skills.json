@@ -1,0 +1,22 @@
+{
+  "java": ["java"],
+  "python": ["python"],
+  "c++": ["c++", "cpp"],
+  "javascript": ["javascript"],
+  "node.js": ["node", "nodejs", "node.js"],
+  "express": ["express", "express.js", "expressjs"],
+  "react": ["react", "react.js", "reactjs"],
+  "angular": ["angular", "angular.js", "angularjs"],
+  "mongodb": ["mongodb", "mongo", "mongo db"],
+  "mysql": ["mysql", "my sql"],
+  "postgresql": ["postgresql", "postgres", "postgre", "psql"],
+  "docker": ["docker"],
+  "kubernetes": ["kubernetes", "k8s"],
+  "aws": ["aws", "amazon web services"],
+  "azure": ["azure", "microsoft azure"],
+  "kafka": ["kafka", "apache kafka"],
+  "redis": ["redis"],
+  "git": ["git", "github", "gitlab", "bitbucket"],
+  "rest api": ["rest api", "restful api", "rest"],
+  "microservices": ["microservices", "microservice"]
+}
