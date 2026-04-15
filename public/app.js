@@ -25,6 +25,7 @@ const elements = {
   scoreValue: document.getElementById("score-value"),
   scoreBar: document.getElementById("score-bar"),
   scoreLabel: document.getElementById("score-label"),
+  candidateName: document.getElementById("candidate-name"),
   toast: document.getElementById("toast"),
 };
 
@@ -140,6 +141,7 @@ const parseResumeResponse = (responseJson) => {
   const payload = responseJson?.data || {};
 
   return {
+    candidateName: String(payload.candidateName || "").trim() || "Anonymous Candidate",
     rawText: payload.rawText || "",
     cleanedText: payload.cleanedText || "",
     skills: Array.isArray(payload.skills) ? payload.skills : [],
@@ -154,7 +156,7 @@ const parseJDResponse = (responseJson) => {
   const analysis = Array.isArray(job?.skillsAnalysis) ? job.skillsAnalysis : [];
 
   return {
-    name: responseJson?.name || "Candidate Name (optional for now)",
+    name: String(responseJson?.name || "").trim() || "Anonymous Candidate",
     resumeSkills: Array.isArray(responseJson?.resumeSkills)
       ? responseJson.resumeSkills
       : [],
@@ -192,6 +194,7 @@ const handleUpload = async ({ endpoint, file, extras = {} }) => {
 };
 
 const renderResults = (resumeData, jdData) => {
+  elements.candidateName.textContent = jdData.name || resumeData.candidateName || "Anonymous Candidate";
   renderSkillTags(elements.resumeSkills, resumeData.skills);
   renderSkillTags(elements.jdSkills, jdData.jdSkills);
   renderSkillsTable(jdData.skillsAnalysis);
@@ -384,7 +387,7 @@ const init = () => {
         endpoint: "/api/jd/upload",
         file: state.jdMode === "text" ? null : state.jdFile,
         extras: {
-          name: "Candidate Name (optional for now)",
+          name: state.resumeData.candidateName,
           resumeSkills: state.resumeData.skills.join(","),
           jobId: "JD001",
           role: "Software Engineer",
