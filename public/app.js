@@ -1,6 +1,6 @@
 const state = {
   resumeFile: null,
-  jdFile: null,
+  jdFiles: [],
   jdText: "",
   jdMode: "file",
   resumeData: null,
@@ -22,6 +22,9 @@ const elements = {
   resumeSkills: document.getElementById("resume-skills"),
   jdSkills: document.getElementById("jd-skills"),
   skillsTableBody: document.getElementById("skills-table-body"),
+  batchResults: document.getElementById("batch-results"),
+  batchSummary: document.getElementById("batch-summary"),
+  batchTableBody: document.getElementById("batch-table-body"),
   scoreValue: document.getElementById("score-value"),
   scoreBar: document.getElementById("score-bar"),
   scoreLabel: document.getElementById("score-label"),
@@ -119,21 +122,27 @@ const updateProgressBar = (score) => {
   elements.scoreBar.style.width = `${bounded}%`;
 
   if (bounded >= 70) {
-    elements.scoreValue.className = "text-4xl font-extrabold text-emerald-300 sm:text-5xl";
-    elements.scoreBar.className = "h-full rounded-full bg-emerald-400 transition-all duration-700 ease-out";
+    elements.scoreValue.className =
+      "text-4xl font-extrabold text-emerald-300 sm:text-5xl";
+    elements.scoreBar.className =
+      "h-full rounded-full bg-emerald-400 transition-all duration-700 ease-out";
     elements.scoreLabel.textContent = "Strong alignment";
     return;
   }
 
   if (bounded >= 40) {
-    elements.scoreValue.className = "text-4xl font-extrabold text-amber-300 sm:text-5xl";
-    elements.scoreBar.className = "h-full rounded-full bg-amber-400 transition-all duration-700 ease-out";
+    elements.scoreValue.className =
+      "text-4xl font-extrabold text-amber-300 sm:text-5xl";
+    elements.scoreBar.className =
+      "h-full rounded-full bg-amber-400 transition-all duration-700 ease-out";
     elements.scoreLabel.textContent = "Moderate alignment";
     return;
   }
 
-  elements.scoreValue.className = "text-4xl font-extrabold text-rose-300 sm:text-5xl";
-  elements.scoreBar.className = "h-full rounded-full bg-rose-400 transition-all duration-700 ease-out";
+  elements.scoreValue.className =
+    "text-4xl font-extrabold text-rose-300 sm:text-5xl";
+  elements.scoreBar.className =
+    "h-full rounded-full bg-rose-400 transition-all duration-700 ease-out";
   elements.scoreLabel.textContent = "Low alignment";
 };
 
@@ -141,7 +150,8 @@ const parseResumeResponse = (responseJson) => {
   const payload = responseJson?.data || {};
 
   return {
-    candidateName: String(payload.candidateName || "").trim() || "Anonymous Candidate",
+    candidateName:
+      String(payload.candidateName || "").trim() || "Anonymous Candidate",
     rawText: payload.rawText || "",
     cleanedText: payload.cleanedText || "",
     skills: Array.isArray(payload.skills) ? payload.skills : [],
@@ -166,11 +176,33 @@ const parseJDResponse = (responseJson) => {
   };
 };
 
-const handleUpload = async ({ endpoint, file, extras = {} }) => {
+const parseJDBatchResponse = (responseJson) => {
+  const comparisons = Array.isArray(responseJson?.comparisons)
+    ? responseJson.comparisons
+    : [];
+
+  return {
+    totalJDs: Number.isFinite(responseJson?.totalJDs)
+      ? responseJson.totalJDs
+      : comparisons.length,
+    comparisons,
+    bestMatch: responseJson?.bestMatch || comparisons[0] || null,
+  };
+};
+
+const handleUpload = async ({ endpoint, file, files = [], extras = {} }) => {
   const formData = new FormData();
 
   if (file) {
     formData.append("file", file);
+  }
+
+  if (Array.isArray(files) && files.length > 0) {
+    files.forEach((item) => {
+      if (item) {
+        formData.append("files", item);
+      }
+    });
   }
 
   Object.entries(extras).forEach(([key, value]) => {
@@ -194,7 +226,10 @@ const handleUpload = async ({ endpoint, file, extras = {} }) => {
 };
 
 const renderResults = (resumeData, jdData) => {
-  elements.candidateName.textContent = jdData.name || resumeData.candidateName || "Anonymous Candidate";
+  elements.batchResults.classList.add("hidden");
+  elements.batchTableBody.innerHTML = "";
+  elements.candidateName.textContent =
+    jdData.name || resumeData.candidateName || "Anonymous Candidate";
   renderSkillTags(elements.resumeSkills, resumeData.skills);
   renderSkillTags(elements.jdSkills, jdData.jdSkills);
   renderSkillsTable(jdData.skillsAnalysis);
@@ -202,6 +237,60 @@ const renderResults = (resumeData, jdData) => {
 
   elements.results.classList.remove("hidden", "opacity-0");
   elements.results.classList.add("animate-fadeInUp");
+};
+
+const createScoreBadge = (score) => {
+  const badge = document.createElement("span");
+  const bounded = Math.max(0, Math.min(100, Number(score) || 0));
+
+  if (bounded >= 70) {
+    badge.className =
+      "inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300";
+  } else if (bounded >= 40) {
+    badge.className =
+      "inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-300";
+  } else {
+    badge.className =
+      "inline-flex items-center rounded-full border border-rose-500/40 bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-300";
+  }
+
+  badge.textContent = `${bounded}%`;
+  return badge;
+};
+
+const renderBatchComparison = (resumeData, batchData) => {
+  const best = batchData.bestMatch;
+
+  if (best?.fullResult) {
+    const bestParsed = parseJDResponse(best.fullResult);
+    renderResults(resumeData, bestParsed);
+  }
+
+  elements.batchTableBody.innerHTML = "";
+
+  batchData.comparisons.forEach((entry) => {
+    const row = document.createElement("tr");
+
+    const sourceCell = document.createElement("td");
+    sourceCell.className = "px-3 py-3 text-slate-200";
+    sourceCell.textContent = entry.sourceName || "JD Source";
+
+    const roleCell = document.createElement("td");
+    roleCell.className = "px-3 py-3 text-slate-300";
+    roleCell.textContent = entry.job?.role || "Unspecified Role";
+
+    const scoreCell = document.createElement("td");
+    scoreCell.className = "px-3 py-3";
+    scoreCell.appendChild(createScoreBadge(entry.matchingScore));
+
+    row.appendChild(sourceCell);
+    row.appendChild(roleCell);
+    row.appendChild(scoreCell);
+    elements.batchTableBody.appendChild(row);
+  });
+
+  elements.batchSummary.textContent = `Processed ${batchData.totalJDs} JDs. Showing best match details above.`;
+  elements.batchResults.classList.remove("hidden");
 };
 
 const validatePDFFile = (file) => {
@@ -217,19 +306,27 @@ const validatePDFFile = (file) => {
   return null;
 };
 
-const validateJDInput = (file, text) => {
+const validateJDInput = (files, text) => {
   const trimmedText = String(text || "").trim();
 
   if (trimmedText.length > 0) {
     return null;
   }
 
-  if (!file) {
+  if (!Array.isArray(files) || files.length === 0) {
     return "Please upload a JD file or paste JD text.";
   }
 
-  const fileName = String(file.name || "").toLowerCase();
-  if (!fileName.endsWith(".pdf") && !fileName.endsWith(".txt") && !fileName.endsWith(".md")) {
+  const hasInvalidFile = files.some((file) => {
+    const fileName = String(file?.name || "").toLowerCase();
+    return (
+      !fileName.endsWith(".pdf") &&
+      !fileName.endsWith(".txt") &&
+      !fileName.endsWith(".md")
+    );
+  });
+
+  if (hasInvalidFile) {
     return "Only PDF, TXT, or MD files are allowed for JD upload.";
   }
 
@@ -290,10 +387,10 @@ const init = () => {
 
   bindDropZone("jd", elements.jdInput, (file) => {
     setJDMode("file");
-    state.jdFile = file;
+    state.jdFiles = file ? [file] : [];
     state.jdText = "";
     elements.jdText.value = "";
-    elements.jdName.textContent = file.name;
+    elements.jdName.textContent = file ? file.name : "No file selected";
   });
 
   elements.jdText.addEventListener("input", () => {
@@ -314,16 +411,30 @@ const init = () => {
   elements.resumeInput.addEventListener("change", () => {
     const selected = elements.resumeInput.files?.[0] || null;
     state.resumeFile = selected;
-    elements.resumeName.textContent = selected ? selected.name : "No file selected";
+    elements.resumeName.textContent = selected
+      ? selected.name
+      : "No file selected";
   });
 
   elements.jdInput.addEventListener("change", () => {
-    const selected = elements.jdInput.files?.[0] || null;
-    state.jdFile = selected;
-    if (selected) {
+    const selectedFiles = Array.from(elements.jdInput.files || []);
+    state.jdFiles = selectedFiles;
+
+    if (selectedFiles.length > 0) {
       setJDMode("file");
     }
-    elements.jdName.textContent = selected ? selected.name : "No file selected";
+
+    if (selectedFiles.length === 0) {
+      elements.jdName.textContent = "No file selected";
+      return;
+    }
+
+    if (selectedFiles.length === 1) {
+      elements.jdName.textContent = selectedFiles[0].name;
+      return;
+    }
+
+    elements.jdName.textContent = `${selectedFiles.length} files selected`;
   });
 
   elements.resumeUploadBtn.addEventListener("click", async () => {
@@ -362,7 +473,7 @@ const init = () => {
 
   elements.jdUploadBtn.addEventListener("click", async () => {
     const validationError = validateJDInput(
-      state.jdMode === "text" ? null : state.jdFile,
+      state.jdMode === "text" ? [] : state.jdFiles,
       state.jdMode === "text" ? state.jdText : "",
     );
     if (validationError) {
@@ -383,21 +494,38 @@ const init = () => {
         "Processing Match...",
       );
 
-      const response = await handleUpload({
-        endpoint: "/api/jd/upload",
-        file: state.jdMode === "text" ? null : state.jdFile,
-        extras: {
-          name: state.resumeData.candidateName,
-          resumeSkills: state.resumeData.skills.join(","),
-          jobId: "JD001",
-          role: "Software Engineer",
-          rawText: state.jdMode === "text" ? state.jdText.trim() : "",
-        },
-      });
+      if (state.jdMode === "file" && state.jdFiles.length > 1) {
+        const batchResponse = await handleUpload({
+          endpoint: "/api/jd/batch-upload",
+          files: state.jdFiles,
+          extras: {
+            name: state.resumeData.candidateName,
+            resumeSkills: state.resumeData.skills.join(","),
+            jobId: "JD001",
+            role: "Software Engineer",
+          },
+        });
 
-      const jdData = parseJDResponse(response);
-      renderResults(state.resumeData, jdData);
-      showToast("Matching insights generated successfully.");
+        const batchData = parseJDBatchResponse(batchResponse);
+        renderBatchComparison(state.resumeData, batchData);
+        showToast(`Matching completed for ${batchData.totalJDs} JDs.`);
+      } else {
+        const response = await handleUpload({
+          endpoint: "/api/jd/upload",
+          file: state.jdMode === "text" ? null : state.jdFiles[0] || null,
+          extras: {
+            name: state.resumeData.candidateName,
+            resumeSkills: state.resumeData.skills.join(","),
+            jobId: "JD001",
+            role: "Software Engineer",
+            rawText: state.jdMode === "text" ? state.jdText.trim() : "",
+          },
+        });
+
+        const jdData = parseJDResponse(response);
+        renderResults(state.resumeData, jdData);
+        showToast("Matching insights generated successfully.");
+      }
     } catch (error) {
       showToast(error.message || "Failed to process JD.");
     } finally {

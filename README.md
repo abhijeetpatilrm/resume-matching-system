@@ -18,20 +18,21 @@ A production-ready Express.js backend system for intelligent resume-to-job-descr
 - **Logging**: Integrated structured logging for debugging and monitoring
 - **Premium UI**: Modern, responsive dashboard for uploading resumes and JDs with real-time match analysis
 - **Flexible JD Input**: Accepts JD PDFs, TXT/MD files, or pasted JD text in the UI
+- **Multi-JD Comparison**: Compare one resume against multiple job descriptions in a single request and rank results by matching score
 - **Database Persistence**: Optional MySQL storage for resume uploads and JD matching results
 
 ## Tech Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Runtime** | Node.js | 20+ |
-| **Framework** | Express.js | 5.2.1 |
-| **PDF Parsing** | pdf-parse | 2.4.5 |
-| **File Upload** | multer | 2.1.1 |
-| **Database** | mysql2 | 3.15.0 |
-| **Config** | dotenv | 17.4.2 |
-| **Frontend** | HTML5 + Vanilla JS + Tailwind CSS (CDN) | - |
-| **Testing** | Node.js built-in test runner | - |
+| Component       | Technology                              | Version |
+| --------------- | --------------------------------------- | ------- |
+| **Runtime**     | Node.js                                 | 20+     |
+| **Framework**   | Express.js                              | 5.2.1   |
+| **PDF Parsing** | pdf-parse                               | 2.4.5   |
+| **File Upload** | multer                                  | 2.1.1   |
+| **Database**    | mysql2                                  | 3.15.0  |
+| **Config**      | dotenv                                  | 17.4.2  |
+| **Frontend**    | HTML5 + Vanilla JS + Tailwind CSS (CDN) | -       |
+| **Testing**     | Node.js built-in test runner            | -       |
 
 ## Project Structure
 
@@ -61,7 +62,7 @@ resume-matching-system/
 │   │   └── healthService.js    # Server health checks
 │   ├── routes/
 │   │   ├── resumeRoutes.js     # POST /api/resume/upload
-│   │   ├── jdRoutes.js         # POST /api/jd/upload
+│   │   ├── jdRoutes.js         # POST /api/jd/upload and POST /api/jd/batch-upload
 │   │   └── healthRoutes.js     # GET /api/health
 │   ├── matchers/
 │   │   └── skillMatcher.js     # Skill matching logic and score calculation
@@ -92,6 +93,7 @@ resume-matching-system/
 ## Setup Instructions
 
 ### Prerequisites
+
 - Node.js 20 or higher
 - npm or yarn package manager
 - MySQL 8+ if you want database persistence enabled
@@ -100,12 +102,14 @@ resume-matching-system/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd resume-matching-system
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
@@ -116,19 +120,22 @@ resume-matching-system/
    # Edit .env if needed (PORT, LOG_LEVEL defaults are sensible)
    ```
 
-  To enable MySQL persistence, set:
-  ```bash
-  MYSQL_HOST=localhost
-  MYSQL_PORT=3306
-  MYSQL_USER=root
-  MYSQL_PASSWORD=your_password
-  MYSQL_DATABASE=resume_matching_system
-  ```
+To enable MySQL persistence, set:
+
+```bash
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=resume_matching_system
+```
 
 4. **Start the server**
+
    ```bash
    npm start
    ```
+
    Output: `🚀 Server started on port 3000`
 
 5. **Access the system**
@@ -138,6 +145,7 @@ resume-matching-system/
 ### Development
 
 For development with auto-reload on file changes:
+
 ```bash
 npm install  # if nodemon not installed
 nodemon server.js
@@ -146,11 +154,13 @@ nodemon server.js
 ### Testing
 
 Run the automated test suite (6 extraction unit tests):
+
 ```bash
 npm test
 ```
 
 Expected output:
+
 ```
 ✔ extractSalary returns labeled salary value
 ✔ extractSalary returns null when salary text has no numeric value
@@ -166,6 +176,7 @@ Expected output:
 ### Database Persistence
 
 MySQL integration is optional. If the database credentials are present in `.env`, the server will create the required tables automatically on startup and store:
+
 - resume uploads with raw text, cleaned text, and extracted skills
 - JD analyses with salary, experience, role summary, skill buckets, and match scores
 
@@ -178,6 +189,7 @@ If you prefer manual setup, the schema is also available in [database/mysql-sche
 This project supports an optional MySQL integration layer through `src/database/mysql.js`.
 
 What happens on startup when MySQL env values are provided:
+
 - initializes a shared MySQL connection pool (`mysql2/promise`)
 - creates tables automatically if they do not exist:
   - `resume_uploads`
@@ -185,18 +197,22 @@ What happens on startup when MySQL env values are provided:
 - enables persistence hooks used by resume and JD services
 
 What gets persisted:
+
 - resume metadata and parsed payload (`raw_text`, `cleaned_text`, `skills_json`)
 - JD metadata and match output (`salary`, `year_of_experience`, `required_skills_json`, `optional_skills_json`, `skills_analysis_json`, `matching_score`)
 
 Fail-open behavior:
+
 - if MySQL is unreachable or not configured, API features still work
 - only persistence is skipped; upload, extraction, and matching continue normally
 
 How to verify integration:
+
 - check startup logs for `MySQL persistence initialized successfully.`
 - call health endpoint and confirm MySQL status under `database.mysql`
 
 Common startup warning and meaning:
+
 - `MySQL persistence unavailable: code=ECONNREFUSED`
   - MySQL server is not running or not reachable on `MYSQL_HOST:MYSQL_PORT`
   - start MySQL and retry
@@ -254,6 +270,7 @@ docker compose down -v
 ## API Documentation
 
 ### Base URL
+
 ```
 http://localhost:3000/api
 ```
@@ -261,6 +278,7 @@ http://localhost:3000/api
 ### Endpoints
 
 #### 1. Resume Upload & Processing
+
 **POST** `/resume/upload`
 
 Uploads and processes a resume PDF to extract skills.
@@ -268,6 +286,7 @@ Uploads and processes a resume PDF to extract skills.
 Accepted multipart file field names: `file` (preferred) or `resume`.
 
 **Request**
+
 ```bash
 curl -X POST \
   -F "file=@path/to/resume.pdf" \
@@ -275,6 +294,7 @@ curl -X POST \
 ```
 
 Alias example:
+
 ```bash
 curl -X POST \
   -F "resume=@path/to/resume.pdf" \
@@ -287,17 +307,13 @@ curl -X POST \
 | `file` or `resume` | file | Yes | Resume PDF file |
 
 **Response (200 OK)**
+
 ```json
 {
   "success": true,
   "data": {
     "candidateName": "John Doe",
-    "skills": [
-      "python",
-      "java",
-      "docker",
-      "postgresql"
-    ],
+    "skills": ["python", "java", "docker", "postgresql"],
     "rawText": "Full resume text...",
     "cleanedText": "Normalized resume text..."
   }
@@ -305,6 +321,7 @@ curl -X POST \
 ```
 
 **Error Response (400/500)**
+
 ```json
 {
   "success": false,
@@ -314,6 +331,7 @@ curl -X POST \
 ```
 
 #### 2. Job Description Upload & Processing
+
 **POST** `/jd/upload`
 
 Uploads and processes a job description from either a PDF/TXT/MD file or pasted text to extract metadata, skills, and match against resume skills.
@@ -321,6 +339,7 @@ Uploads and processes a job description from either a PDF/TXT/MD file or pasted 
 Accepted multipart file field names: `file` (preferred) or `jd`.
 
 **Request**
+
 ```bash
 curl -X POST \
   -F "file=@path/to/job_description.pdf" \
@@ -328,6 +347,7 @@ curl -X POST \
 ```
 
 Alias example:
+
 ```bash
 curl -X POST \
   -F "jd=@path/to/job_description.pdf" \
@@ -335,6 +355,7 @@ curl -X POST \
 ```
 
 You can also send pasted JD text in the same multipart request:
+
 ```bash
 curl -X POST \
   -F "rawText=Role: Backend Developer\nExperience: 4 years\nRequired Skills: Java, Node.js" \
@@ -342,7 +363,6 @@ curl -X POST \
   http://localhost:3000/api/jd/upload
 ```
 
-**Query Parameters**
 **Multipart Form Fields**
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -356,6 +376,7 @@ curl -X POST \
 \* At least one of `file`/`jd` or `rawText`/`jdText` is required.
 
 **Response (200 OK)**
+
 ```json
 {
   "name": "John Doe",
@@ -370,11 +391,11 @@ curl -X POST \
       "requiredSkills": ["python", "postgresql", "docker"],
       "optionalSkills": ["kubernetes", "aws"],
       "skillsAnalysis": [
-        {"skill": "python", "presentInResume": true},
-        {"skill": "postgresql", "presentInResume": true},
-        {"skill": "docker", "presentInResume": true},
-        {"skill": "kubernetes", "presentInResume": false},
-        {"skill": "aws", "presentInResume": false}
+        { "skill": "python", "presentInResume": true },
+        { "skill": "postgresql", "presentInResume": true },
+        { "skill": "docker", "presentInResume": true },
+        { "skill": "kubernetes", "presentInResume": false },
+        { "skill": "aws", "presentInResume": false }
       ],
       "matchingScore": 60
     }
@@ -382,12 +403,82 @@ curl -X POST \
 }
 ```
 
-#### 3. Health Check
+#### 3. Batch Job Description Comparison (One Resume vs Multiple JDs)
+
+**POST** `/jd/batch-upload`
+
+Compares one resume skill set against multiple JDs (files and/or text entries) in one call and returns sorted comparisons.
+
+**Request**
+
+```bash
+curl -X POST \
+  -F "files=@jd_backend.pdf" \
+  -F "files=@jd_platform.txt" \
+  -F "name=John Doe" \
+  -F "resumeSkills=python,java,postgresql,docker,react" \
+  -F "jobId=JD" \
+  -F "role=Software Engineer" \
+  http://localhost:3000/api/jd/batch-upload
+```
+
+**Multipart Form Fields**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `files`/`jds`/`file`/`jd` | file[] | No* | One or more JD files (`.pdf`, `.txt`, `.md`) |
+| `rawTexts` or `jdTexts` | string[] or JSON string array | No* | One or more pasted JD text entries |
+| `resumeSkills` | string | Yes | Comma-separated resume skills |
+| `name` | string | No | Candidate name |
+| `jobId` | string | No | Base job identifier prefix |
+| `role` | string | No | Default role fallback |
+
+\* At least one source is required: JD files or JD text entries.
+
+**Response (200 OK)**
+
+```json
+{
+  "success": true,
+  "totalJDs": 2,
+  "comparisons": [
+    {
+      "sourceType": "file",
+      "sourceName": "jd_backend.pdf",
+      "name": "John Doe",
+      "salary": "18 LPA",
+      "yearOfExperience": 4,
+      "matchingScore": 80,
+      "job": {
+        "jobId": "JD-1",
+        "role": "Software Engineer",
+        "aboutRole": "...",
+        "requiredSkills": ["python", "docker"],
+        "optionalSkills": ["kubernetes"],
+        "skillsAnalysis": [
+          { "skill": "python", "presentInResume": true },
+          { "skill": "docker", "presentInResume": true },
+          { "skill": "kubernetes", "presentInResume": false }
+        ],
+        "matchingScore": 80
+      },
+      "fullResult": { "name": "John Doe", "matchingJobs": [] }
+    }
+  ],
+  "bestMatch": {
+    "sourceName": "jd_backend.pdf",
+    "matchingScore": 80
+  }
+}
+```
+
+#### 4. Health Check
+
 **GET** `/health`
 
 Basic server health check.
 
 **Response (200 OK)**
+
 ```json
 {
   "status": "ok",
@@ -399,6 +490,7 @@ Basic server health check.
 ### Sample Workflow
 
 #### Step 1: Upload Resume
+
 ```bash
 curl -X POST \
   -F "file=@candidate_resume.pdf" \
@@ -406,6 +498,7 @@ curl -X POST \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -421,6 +514,7 @@ curl -X POST \
 Extract `skills` array for next step: `["python", "java", "postgresql", "docker", "react"]`
 
 #### Step 2: Upload Job Description
+
 ```bash
 curl -X POST \
   -F "file=@backend_developer_job.pdf" \
@@ -432,6 +526,7 @@ curl -X POST \
 ```
 
 **Response:**
+
 ```json
 {
   "name": "John Doe",
@@ -446,18 +541,33 @@ curl -X POST \
       "requiredSkills": ["python", "postgresql", "docker"],
       "optionalSkills": ["kubernetes", "aws", "apache-kafka"],
       "skillsAnalysis": [
-        {"skill": "python", "presentInResume": true},
-        {"skill": "postgresql", "presentInResume": true},
-        {"skill": "docker", "presentInResume": true},
-        {"skill": "kubernetes", "presentInResume": false},
-        {"skill": "aws", "presentInResume": false},
-        {"skill": "apache-kafka", "presentInResume": false}
+        { "skill": "python", "presentInResume": true },
+        { "skill": "postgresql", "presentInResume": true },
+        { "skill": "docker", "presentInResume": true },
+        { "skill": "kubernetes", "presentInResume": false },
+        { "skill": "aws", "presentInResume": false },
+        { "skill": "apache-kafka", "presentInResume": false }
       ],
       "matchingScore": 100
     }
   ]
 }
 ```
+
+#### Step 3: Compare Against Multiple JDs
+
+```bash
+curl -X POST \
+  -F "files=@jd_backend.pdf" \
+  -F "files=@jd_platform.txt" \
+  -F "name=John Doe" \
+  -F "resumeSkills=python,java,postgresql,docker,react" \
+  "http://localhost:3000/api/jd/batch-upload"
+```
+
+This response includes:
+- `comparisons`: score and extracted details for each JD
+- `bestMatch`: top-ranked JD by matching score
 
 #### Interpreting the Response
 
@@ -514,32 +624,40 @@ Extracted Metadata:
     │         formula: (matched/total) * 100
     │
     └──→ [JD Service Output]
-         {salary, yearOfExperience, aboutRole, 
-          requiredSkills, optionalSkills, 
+         {salary, yearOfExperience, aboutRole,
+          requiredSkills, optionalSkills,
           skillsAnalysis, matchingScore}
 ```
 
 ### Key Components
 
 #### src/utils/jdInfoExtractor.js
+
 Extracts structured metadata from JD PDFs:
+
 - `extractSalary(rawText)` - Returns formatted salary string or null
 - `extractYearsOfExperience(rawText)` - Returns minimum years (number)
 - `extractAboutRole(rawText)` - Returns role description section
 - `extractJDSkillBuckets(cleanedText, skillDict)` - Returns {allSkills, requiredSkills, optionalSkills}
 
 #### src/matchers/skillMatcher.js
+
 Compares skills and calculates match score:
+
 - `matchSkills(resumeSkills, jdSkills)` - Per-skill presence analysis
 - `calculateMatchingScore(skillAnalysis, jdSkills)` - Matching percentage
 
 #### src/utils/skillExtractor.js
+
 Extracts skills from text using boundary-aware regex:
+
 - Prevents false positives (e.g., "java" won't match inside "javascript")
 - Case-insensitive matching against skill dictionary
 
 #### src/utils/textCleaner.js
+
 Normalizes PDF text:
+
 - Lowercase conversion
 - Line break normalization
 - Special character removal
@@ -548,6 +666,7 @@ Normalizes PDF text:
 ### Error Handling
 
 All errors are caught by the global error handler middleware and returned as:
+
 ```json
 {
   "success": false,
@@ -557,6 +676,7 @@ All errors are caught by the global error handler middleware and returned as:
 ```
 
 HTTP Status Codes:
+
 - `200 OK` - Successful processing
 - `400 Bad Request` - Invalid file type, missing parameters
 - `404 Not Found` - Endpoint not found
@@ -567,7 +687,9 @@ HTTP Status Codes:
 This implementation addresses all assignment functional requirements:
 
 ### 1. Extraction Accuracy (40%)
+
 ✅ **Implemented and tested:**
+
 - Resume skill extraction with normalized deduplication
 - JD skill extraction with required/optional classification
 - Salary extraction (handles CTC, LPA, ranges, currency symbols)
@@ -576,14 +698,18 @@ This implementation addresses all assignment functional requirements:
 - All extraction logic covered by automated unit tests (6/6 passing)
 
 ### 2. Matching Logic (25%)
+
 ✅ **Implemented and tested:**
+
 - Per-skill presence/absence analysis
 - Matching score formula: `(matched_required_skills / total_required_skills) * 100`
 - Score capped 0-100, handles edge cases (0 skills = 0%)
 - Skill normalization prevents duplicates and false matches
 
 ### 3. Code Quality (20%)
+
 ✅ **Production-ready structure:**
+
 - Clean layered architecture (routes → controllers → services → utilities)
 - Separation of concerns (parsing, extraction, matching in separate modules)
 - Reusable utility functions with no duplication
@@ -593,7 +719,9 @@ This implementation addresses all assignment functional requirements:
 - No hardcoded values (environment config via dotenv)
 
 ### 4. Performance (10%)
+
 ✅ **Optimized for speed:**
+
 - Direct PDF streaming (no large buffers)
 - Efficient regex-based extraction (no heavy NLP libraries)
 - Skill lookup via object key access O(1)
@@ -601,7 +729,9 @@ This implementation addresses all assignment functional requirements:
 - ~200-500ms per PDF processing on modern hardware
 
 ### 5. Documentation (5%)
+
 ✅ **Complete documentation:**
+
 - README with setup instructions, API docs, examples
 - Architecture overview and data flow diagram
 - Code comments for complex logic
@@ -611,6 +741,7 @@ This implementation addresses all assignment functional requirements:
 ## Assumptions and Limitations
 
 ### Assumptions
+
 1. **PDF Format**: Input PDFs are well-formed text-based documents (not scanned images)
 2. **Text Language**: Resume and JD text is primarily in English
 3. **Skill Dictionary**: System uses predefined skill dictionary (20 tech skills); custom skills not added dynamically
@@ -619,6 +750,7 @@ This implementation addresses all assignment functional requirements:
 6. **Skill Boundaries**: Skills in text are word-boundary separated (prevents "java" matching inside "javascript")
 
 ### Limitations
+
 1. **PDF Parsing**: Scanned PDFs (images) not supported; text must be extractable
 2. **Skill Dictionary Size**: Fixed set of 20 tech skills; not real-time updatable without code change
 3. **Language Support**: English-only; other languages not supported
@@ -628,6 +760,7 @@ This implementation addresses all assignment functional requirements:
 7. **Concurrency**: No database backend; only per-request processing (no persistence)
 
 ### Future Enhancements
+
 - [ ] Add resume salary/experience extraction
 - [ ] Support for scanned PDFs via OCR
 - [ ] Dynamic skill dictionary updates
@@ -659,15 +792,19 @@ PDFs uploaded to `/uploads/` temporarily during processing. Empty after request 
 ## Troubleshooting
 
 ### Issue: "only PDF files are accepted"
+
 **Solution**: Ensure file has `.pdf` extension and MIME type `application/pdf`
 
 ### Issue: "Cannot find module 'pdf-parse'"
+
 **Solution**: Run `npm install` to install dependencies
 
 ### Issue: Port 3000 already in use
+
 **Solution**: Set PORT env var to different port: `PORT=3001 npm start`
 
 ### Issue: Extraction returns null for salary/experience
+
 **This is normal** if the PDF doesn't contain that information. The system correctly returns `null` rather than guessing.
 
 ## Example Test

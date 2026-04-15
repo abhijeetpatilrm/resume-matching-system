@@ -26,32 +26,37 @@ const buildUniqueFileName = (originalName, fallbackExtension = ".pdf") => {
   return `${timestamp}-${safeBaseName}${safeExtension}`;
 };
 
-const createFileFilter = ({ allowTextFiles = false } = {}) => (req, file, callback) => {
-  const fileExtension = path.extname(file.originalname || "").toLowerCase();
+const createFileFilter =
+  ({ allowTextFiles = false } = {}) =>
+  (req, file, callback) => {
+    const fileExtension = path.extname(file.originalname || "").toLowerCase();
 
-  const isPdfMimeType =
-    file.mimetype === "application/pdf" ||
-    file.mimetype === "application/x-pdf";
+    const isPdfMimeType =
+      file.mimetype === "application/pdf" ||
+      file.mimetype === "application/x-pdf";
 
-  const isPdfExtension = fileExtension === ".pdf";
+    const isPdfExtension = fileExtension === ".pdf";
 
-  const isTextMimeType =
-    file.mimetype === "text/plain" ||
-    file.mimetype === "text/markdown" ||
-    file.mimetype === "application/plain";
+    const isTextMimeType =
+      file.mimetype === "text/plain" ||
+      file.mimetype === "text/markdown" ||
+      file.mimetype === "application/plain";
 
-  const isTextExtension = fileExtension === ".txt" || fileExtension === ".md";
+    const isTextExtension = fileExtension === ".txt" || fileExtension === ".md";
 
-  if (allowTextFiles && ((isPdfMimeType && isPdfExtension) || (isTextMimeType && isTextExtension))) {
-    return callback(null, true);
-  }
+    if (
+      allowTextFiles &&
+      ((isPdfMimeType && isPdfExtension) || (isTextMimeType && isTextExtension))
+    ) {
+      return callback(null, true);
+    }
 
-  if (!isPdfMimeType || !isPdfExtension) {
-    return callback(new AppError("Only PDF files are allowed", 400));
-  }
+    if (!isPdfMimeType || !isPdfExtension) {
+      return callback(new AppError("Only PDF files are allowed", 400));
+    }
 
-  callback(null, true);
-};
+    callback(null, true);
+  };
 
 ensureUploadsDirectory();
 
@@ -68,10 +73,12 @@ const createUploadHandler = ({
   allowTextFiles = false,
   requireFile = true,
   fieldNames = ["file"],
+  maxCountPerField = 1,
 } = {}) => {
-  const allowedFieldNames = Array.isArray(fieldNames) && fieldNames.length
-    ? [...new Set(fieldNames)]
-    : ["file"];
+  const allowedFieldNames =
+    Array.isArray(fieldNames) && fieldNames.length
+      ? [...new Set(fieldNames)]
+      : ["file"];
 
   const multerUpload = multer({
     storage,
@@ -79,7 +86,9 @@ const createUploadHandler = ({
     limits: {
       fileSize: MAX_FILE_SIZE_BYTES,
     },
-  }).fields(allowedFieldNames.map((name) => ({ name, maxCount: 1 })));
+  }).fields(
+    allowedFieldNames.map((name) => ({ name, maxCount: maxCountPerField })),
+  );
 
   return (req, res, next) => {
     multerUpload(req, res, (error) => {
@@ -96,9 +105,15 @@ const createUploadHandler = ({
         return next(new AppError(error.message || "File upload failed", 500));
       }
 
-      const uploadedFile = allowedFieldNames
-        .map((fieldName) => req.files?.[fieldName]?.[0])
-        .find(Boolean);
+      const uploadedFiles = allowedFieldNames.flatMap(
+        (fieldName) => req.files?.[fieldName] || [],
+      );
+
+      const uploadedFile = uploadedFiles[0] || null;
+
+      if (uploadedFiles.length > 0) {
+        req.uploadedFiles = uploadedFiles;
+      }
 
       if (uploadedFile) {
         req.file = uploadedFile;
@@ -127,6 +142,13 @@ export const uploadJdSource = createUploadHandler({
   allowTextFiles: true,
   requireFile: false,
   fieldNames: ["file", "jd"],
+});
+
+export const uploadMultipleJdSources = createUploadHandler({
+  allowTextFiles: true,
+  requireFile: false,
+  fieldNames: ["files", "jds", "file", "jd"],
+  maxCountPerField: 20,
 });
 
 export default upload;

@@ -1,10 +1,14 @@
-import { Router } from 'express';
+import { Router } from "express";
 
-import { uploadJdSource } from '../middlewares/uploadMiddleware.js';
-import { uploadJD } from '../controllers/jdController.js';
+import {
+	uploadJdSource,
+	uploadMultipleJdSources,
+} from "../middlewares/uploadMiddleware.js";
+import { uploadJD, uploadJDBatch } from "../controllers/jdController.js";
 
 const router = Router();
 
-router.post('/upload', uploadJdSource, uploadJD);
+router.post("/upload", uploadJdSource, uploadJD);
+router.post("/batch-upload", uploadMultipleJdSources, uploadJDBatch);
 
 export default router;

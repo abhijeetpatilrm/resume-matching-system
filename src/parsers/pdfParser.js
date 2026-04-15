@@ -15,7 +15,9 @@ export const extractTextFromPDF = async (filePath) => {
     return parsed?.text ?? "";
   } catch (error) {
     const message = error?.message || "Unknown parsing error";
-    throw new Error(`Failed to extract text from PDF at '${filePath}': ${message}`);
+    throw new Error(
+      `Failed to extract text from PDF at '${filePath}': ${message}`,
+    );
   } finally {
     if (parser?.destroy) {
       await parser.destroy();

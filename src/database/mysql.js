@@ -160,7 +160,12 @@ export const initializeMySql = async () => {
 
 export const isMySqlEnabled = () => databaseEnabled;
 
-export const saveResumeUpload = async ({ file, rawText, cleanedText, skills }) => {
+export const saveResumeUpload = async ({
+  file,
+  rawText,
+  cleanedText,
+  skills,
+}) => {
   if (!databaseEnabled || !file) {
     return null;
   }
@@ -207,7 +212,9 @@ export const saveJDAnalysis = async ({ file, result, source }) => {
   if (!connectionPool) {
     return null;
   }
-  const job = Array.isArray(result.matchingJobs) ? result.matchingJobs[0] : null;
+  const job = Array.isArray(result.matchingJobs)
+    ? result.matchingJobs[0]
+    : null;
 
   const [dbResult] = await connectionPool.execute(
     `INSERT INTO jd_analyses (
@@ -235,7 +242,9 @@ export const saveJDAnalysis = async ({ file, result, source }) => {
       file?.originalname || file?.filename || null,
       file?.filename || null,
       file?.path || null,
-      result.name || source?.candidateName || "Candidate Name (optional for now)",
+      result.name ||
+        source?.candidateName ||
+        "Candidate Name (optional for now)",
       job?.jobId || source?.jobId || "JD001",
       job?.role || source?.role || "Software Engineer",
       result.salary || null,

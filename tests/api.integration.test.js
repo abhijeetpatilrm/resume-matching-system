@@ -10,7 +10,10 @@ const __dirname = path.dirname(__filename);
 // Import services and utilities
 import { processResume } from "../src/services/resumeService.js";
 import { processJD } from "../src/services/jdService.js";
-import { matchSkills, calculateMatchingScore } from "../src/matchers/skillMatcher.js";
+import {
+  matchSkills,
+  calculateMatchingScore,
+} from "../src/matchers/skillMatcher.js";
 import { extractSkills } from "../src/utils/skillExtractor.js";
 import { cleanText } from "../src/utils/textCleaner.js";
 
@@ -46,7 +49,11 @@ test("Unit: Skill Extraction - extractSkills identifies skills from text", (t) =
 
   // Verify normalization
   skills.forEach((skill) => {
-    assert.strictEqual(skill, skill.toLowerCase(), `Skill "${skill}" is lowercase`);
+    assert.strictEqual(
+      skill,
+      skill.toLowerCase(),
+      `Skill "${skill}" is lowercase`,
+    );
   });
 });
 
@@ -64,16 +71,30 @@ test("Unit: Skill Matching - matchSkills analyzes skill presence correctly", (t)
 
   const analysis = matchSkills(resumeSkills, jdSkills);
 
-  assert.strictEqual(analysis.length, jdSkills.length, "Analysis includes all JD skills");
+  assert.strictEqual(
+    analysis.length,
+    jdSkills.length,
+    "Analysis includes all JD skills",
+  );
 
   analysis.forEach((item) => {
     assert.ok(item.skill, "Item has skill");
-    assert.strictEqual(typeof item.presentInResume, "boolean", "Has boolean flag");
+    assert.strictEqual(
+      typeof item.presentInResume,
+      "boolean",
+      "Has boolean flag",
+    );
   });
 
   // Verify correctness
-  assert.ok(analysis.find((s) => s.skill === "python").presentInResume, "Python present");
-  assert.ok(!analysis.find((s) => s.skill === "kubernetes").presentInResume, "Kubernetes absent");
+  assert.ok(
+    analysis.find((s) => s.skill === "python").presentInResume,
+    "Python present",
+  );
+  assert.ok(
+    !analysis.find((s) => s.skill === "kubernetes").presentInResume,
+    "Kubernetes absent",
+  );
 });
 
 test("Unit: Score Calculation - correct formula (matched/total)*100", (t) => {
@@ -86,7 +107,11 @@ test("Unit: Score Calculation - correct formula (matched/total)*100", (t) => {
   const score = calculateMatchingScore(skillAnalysis);
   const expectedScore = 66.67;
 
-  assert.strictEqual(score.toFixed(2), expectedScore.toFixed(2), "Score matches formula");
+  assert.strictEqual(
+    score.toFixed(2),
+    expectedScore.toFixed(2),
+    "Score matches formula",
+  );
   assert.ok(score >= 0 && score <= 100, "Score in valid range");
 });
 
@@ -105,7 +130,11 @@ test("Unit: Score Calculation - edge case all matched", (t) => {
     { skill: "docker", presentInResume: true },
   ];
 
-  assert.strictEqual(calculateMatchingScore(skillAnalysis), 100, "Score is 100");
+  assert.strictEqual(
+    calculateMatchingScore(skillAnalysis),
+    100,
+    "Score is 100",
+  );
 });
 
 test("Unit: Score Calculation - empty analysis", (t) => {
@@ -166,7 +195,7 @@ if (jdPdfPath) {
         mimetype: "application/pdf",
         filename: path.basename(jdPdfPath),
       },
-      params
+      params,
     );
 
     // Verify schema

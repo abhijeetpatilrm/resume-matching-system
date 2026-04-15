@@ -4,7 +4,10 @@ import { cleanText } from "../utils/textCleaner.js";
 import { AppError } from "../utils/appError.js";
 import { normalizeSkills } from "../utils/skillNormalizer.js";
 import { extractSkills } from "../utils/skillExtractor.js";
-import { calculateMatchingScore, matchSkills } from "../matchers/skillMatcher.js";
+import {
+  calculateMatchingScore,
+  matchSkills,
+} from "../matchers/skillMatcher.js";
 import {
   extractAboutRole,
   extractJDSkillBuckets,
@@ -62,8 +65,12 @@ const parseRawJDText = async ({ file, rawText }) => {
     throw new AppError("JD text content or file is required", 400);
   }
 
-  const fileName = String(file.originalname || file.filename || "").toLowerCase();
-  const fileExtension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".")) : "";
+  const fileName = String(
+    file.originalname || file.filename || "",
+  ).toLowerCase();
+  const fileExtension = fileName.includes(".")
+    ? fileName.slice(fileName.lastIndexOf("."))
+    : "";
 
   if (
     file.mimetype === "text/plain" ||
@@ -170,9 +177,12 @@ export const processJD = async (
         ? "text-file"
         : "file";
     const cleanedText = normalizeJDText(jdRawText);
-    const { salary, yearOfExperience, aboutRole } = extractJDMetadata(jdRawText);
-    const { allSkills, requiredSkills, optionalSkills } = extractJDSkillData(cleanedText);
-    const jdSkills = allSkills.length > 0 ? allSkills : extractJDSkills(cleanedText);
+    const { salary, yearOfExperience, aboutRole } =
+      extractJDMetadata(jdRawText);
+    const { allSkills, requiredSkills, optionalSkills } =
+      extractJDSkillData(cleanedText);
+    const jdSkills =
+      allSkills.length > 0 ? allSkills : extractJDSkills(cleanedText);
     const normalizedResumeSkills = normalizeResumeSkillsInput(resumeSkills);
     const skillsAnalysis = analyzeSkillMatch(normalizedResumeSkills, jdSkills);
     const matchingScore = calculateMatchingScore(skillsAnalysis);

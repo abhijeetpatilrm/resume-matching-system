@@ -27,7 +27,9 @@ const toTitleCase = (value) =>
   value
     .split(" ")
     .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
+    .map(
+      (part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`,
+    )
     .join(" ");
 
 const isLikelyNameLine = (line) => {
@@ -39,7 +41,10 @@ const isLikelyNameLine = (line) => {
     return false;
   }
 
-  const normalized = line.replace(/[^a-zA-Z\s.'-]/g, " ").replace(/\s+/g, " ").trim();
+  const normalized = line
+    .replace(/[^a-zA-Z\s.'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (!normalized) {
     return false;
@@ -72,7 +77,11 @@ const extractNameFromFileName = (file) => {
     .trim();
 
   const words = normalized.split(" ").filter(Boolean);
-  if (words.length >= 2 && words.length <= 4 && words.every((word) => word.length > 1)) {
+  if (
+    words.length >= 2 &&
+    words.length <= 4 &&
+    words.every((word) => word.length > 1)
+  ) {
     return toTitleCase(words.join(" "));
   }
 
@@ -88,7 +97,10 @@ const extractCandidateName = (rawText, file) => {
 
   const detectedLine = lines.find(isLikelyNameLine);
   if (detectedLine) {
-    const normalized = detectedLine.replace(/[^a-zA-Z\s.'-]/g, " ").replace(/\s+/g, " ").trim();
+    const normalized = detectedLine
+      .replace(/[^a-zA-Z\s.'-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     return toTitleCase(normalized);
   }
 
@@ -117,7 +129,12 @@ const extractResumeSkills = (cleanedText) => {
   return extractSkills(cleanedText, normalizedSkillsDictionary);
 };
 
-const buildResumePayload = ({ candidateName, rawText, cleanedText, skills }) => {
+const buildResumePayload = ({
+  candidateName,
+  rawText,
+  cleanedText,
+  skills,
+}) => {
   return {
     candidateName,
     rawText,
@@ -134,7 +151,12 @@ export const processResume = async (file) => {
     const cleanedText = normalizeResumeText(rawText);
     const skills = extractResumeSkills(cleanedText);
     const candidateName = extractCandidateName(rawText, file);
-    const payload = buildResumePayload({ candidateName, rawText, cleanedText, skills });
+    const payload = buildResumePayload({
+      candidateName,
+      rawText,
+      cleanedText,
+      skills,
+    });
 
     await saveResumeUpload({
       file,

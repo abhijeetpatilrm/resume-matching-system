@@ -60,7 +60,11 @@ export const extractSalary = (rawText) => {
   ];
 
   for (const line of lines) {
-    if (!/salary|ctc|compensation|₹|\binr\b|\brs\.?\b|lpa|lakh|crore|annum|pa/i.test(line)) {
+    if (
+      !/salary|ctc|compensation|₹|\binr\b|\brs\.?\b|lpa|lakh|crore|annum|pa/i.test(
+        line,
+      )
+    ) {
       continue;
     }
 
@@ -121,7 +125,9 @@ export const extractYearsOfExperience = (rawText) => {
 const extractSectionAfterHeading = (rawText, headingPattern) => {
   const text = String(rawText || "");
   const lines = text.split(/\r?\n/);
-  const startIndex = lines.findIndex((line) => headingPattern.test(normalizeHeading(line)));
+  const startIndex = lines.findIndex((line) =>
+    headingPattern.test(normalizeHeading(line)),
+  );
 
   if (startIndex < 0) {
     return "";
@@ -200,7 +206,9 @@ export const extractAboutRole = (rawText) => {
 
 const collectSectionBlock = (cleanedText, headingPattern) => {
   const lines = String(cleanedText || "").split("\n");
-  const index = lines.findIndex((line) => headingPattern.test(normalizeHeading(line)));
+  const index = lines.findIndex((line) =>
+    headingPattern.test(normalizeHeading(line)),
+  );
 
   if (index < 0) {
     return "";
@@ -232,7 +240,10 @@ const collectSectionBlock = (cleanedText, headingPattern) => {
   return collected.join("\n");
 };
 
-export const extractJDSkillBuckets = (cleanedText, normalizedSkillDictionary) => {
+export const extractJDSkillBuckets = (
+  cleanedText,
+  normalizedSkillDictionary,
+) => {
   const allSkills = extractSkills(cleanedText, normalizedSkillDictionary);
 
   const requiredBlock = collectSectionBlock(
@@ -254,7 +265,9 @@ export const extractJDSkillBuckets = (cleanedText, normalizedSkillDictionary) =>
     : [];
 
   const optionalSet = new Set(extractedOptionalSkills);
-  const requiredSkills = extractedRequiredSkills.filter((skill) => !optionalSet.has(skill));
+  const requiredSkills = extractedRequiredSkills.filter(
+    (skill) => !optionalSet.has(skill),
+  );
 
   return {
     allSkills: unique(allSkills),

@@ -62,7 +62,16 @@ test("extractJDSkillBuckets separates required and optional skills", () => {
 
   const result = extractJDSkillBuckets(cleaned, skillDictionary);
 
-  assert.deepEqual(result.requiredSkills.sort(), ["docker", "postgresql", "python"]);
+  assert.deepEqual(result.requiredSkills.sort(), [
+    "docker",
+    "postgresql",
+    "python",
+  ]);
   assert.deepEqual(result.optionalSkills, ["react"]);
-  assert.deepEqual(result.allSkills.sort(), ["docker", "postgresql", "python", "react"]);
+  assert.deepEqual(result.allSkills.sort(), [
+    "docker",
+    "postgresql",
+    "python",
+    "react",
+  ]);
 });
